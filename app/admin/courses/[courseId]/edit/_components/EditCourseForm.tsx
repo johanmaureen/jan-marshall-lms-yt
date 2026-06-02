@@ -148,10 +148,7 @@ export function EditCourseForm({ data, presignedUrl }: iAppProps) {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <RichTextEditor
-                  field={field}
-                  sendBottun={<Button>Send</Button>}
-                />
+                <RichTextEditor field={field} />
               </FormControl>
               <FormMessage />
             </FormItem>
