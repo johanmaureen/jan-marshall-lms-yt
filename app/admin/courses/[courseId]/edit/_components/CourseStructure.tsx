@@ -15,10 +15,18 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminCourseType } from "@/app/data/admin/admin-get-course";
-import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  GripVertical,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
 //import { CSS } from '@dnd-kit/utilities'
 
 interface SortableChapterProps {
@@ -28,11 +36,14 @@ interface SortableChapterProps {
   isOpen: boolean;
   toggleOpen: () => void;
   lessons?: React.ReactNode;
+  lessonCreate: React.ReactNode;
 }
 interface SortableLessonProps {
   id: string;
   chapterId: string;
   title: string;
+  courseId: string;
+  lessonId: string;
 }
 
 function SortableChapter({
@@ -41,57 +52,109 @@ function SortableChapter({
   isOpen,
   toggleOpen,
   lessons,
+  lessonCreate,
 }: SortableChapterProps) {
-  const { setNodeRef, isDragging, attributes, listeners } = useSortable({ id });
+  const {
+    setNodeRef,
+    isDragging,
+    attributes,
+    listeners,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+  };
 
   return (
     <>
-      <li ref={setNodeRef}>
+      <li ref={setNodeRef} {...attributes} style={style}>
         <div
-          className="flex flex-row items-center justify-between"
+          className="flex  items-center justify-between p-3 border-b border-border"
           data-shadow={isDragging || undefined}
         >
-          {title}
-          <Button onClick={toggleOpen} type="button">
-            {isOpen ? (
-              <ChevronDown className="size4" />
-            ) : (
-              <ChevronRight className="size4" />
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+              {...listeners}
+            >
+              <GripVertical className="size-4" />
+            </button>
+            <Button onClick={toggleOpen} type="button" variant="outline">
+              {isOpen ? (
+                <ChevronDown className="size4" />
+              ) : (
+                <ChevronRight className="size4" />
+              )}
+            </Button>
+          </div>
+          <div className="flex-1 min-w-0 px-4 text-center">
+            <p className="truncate cursor-pointer hover:text-primary">
+              {title}
+            </p>
+          </div>
+          <Button size="icon" variant="outline">
+            <Trash2 className="size-4" />
           </Button>
-          <button
-            type="button"
-            className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="size-4" />
-          </button>
         </div>
       </li>
       {lessons}
+      {lessonCreate}
     </>
   );
 }
 
-function SortableLesson({ id, title }: SortableLessonProps) {
-  const { setNodeRef, isDragging, attributes, listeners } = useSortable({ id });
+function SortableLesson({
+  id,
+  title,
+  chapterId,
+  courseId,
+  lessonId,
+}: SortableLessonProps) {
+  const {
+    setNodeRef,
+    isDragging,
+    attributes,
+    listeners,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+  };
 
   return (
-    <li ref={setNodeRef}>
+    <li ref={setNodeRef} {...attributes} style={style}>
       <div
-        className="flex flex-row items-center justify-between"
+        className="flex flex-row items-center justify-between p-3 border-b border-border"
         data-shadow={isDragging || undefined}
       >
-        {title}
-        <button
-          type="button"
-          className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="size-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            {...listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+          <FileText className="size-4" />
+        </div>
+        <div className="flex-1 min-w-0 px-4 text-center">
+          <Link
+            className="block w-full truncate"
+            href={`/admin/courses/${courseId}/${chapterId}/${lessonId}`}
+          >
+            {title}
+          </Link>
+        </div>
+        <Button size="icon" variant="outline">
+          <Trash2 className="size-4" />
+        </Button>
       </div>
     </li>
   );
@@ -148,14 +211,6 @@ export function CourseStructure({ data }: CourseStructureProps) {
       onDragEnd={(event: DragEndEvent) => {
         const activeIdStr = String(event.active.id);
         const overIdStr = event.over?.id ? String(event.over.id) : null;
-
-        console.log("[CourseStructure] onDragEnd", {
-          active: activeIdStr,
-          over: overIdStr,
-          isActiveChapter: activeIdStr.startsWith("chapter-"),
-          isOverChapter: overIdStr?.startsWith("chapter-"),
-          event,
-        });
 
         setItems((items) => {
           if (!overIdStr || activeIdStr === overIdStr) return items;
@@ -227,43 +282,60 @@ export function CourseStructure({ data }: CourseStructureProps) {
           <CardTitle>Chapters</CardTitle>
         </CardHeader>
         <CardContent>
-          <SortableContext
-            items={items.map((c) => `chapter-${c.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ul className="list">
-              {items.map((item) => (
-                <React.Fragment key={`chapter-${item.id}`}>
-                  <SortableChapter
-                    id={`chapter-${item.id}`}
-                    chapterId={item.id}
-                    title={item.title}
-                    isOpen={item.isOpen}
-                    toggleOpen={() => toggleChapter(item.id)}
-                    lessons={
-                      item.isOpen && item.lessons.length > 0 ? (
-                        <SortableContext
-                          items={item.lessons.map((l) => `lesson-${l.id}`)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <ul className="ml-4 mt-2 border-l border-border pl-4">
-                            {item.lessons.map((lesson) => (
-                              <SortableLesson
-                                key={`lesson-${lesson.id}`}
-                                id={`lesson-${lesson.id}`}
-                                title={lesson.title}
-                                chapterId={item.id}
-                              />
-                            ))}
-                          </ul>
-                        </SortableContext>
-                      ) : null
-                    }
-                  />
-                </React.Fragment>
-              ))}
-            </ul>
-          </SortableContext>
+          <div className="space-y-4">
+            <SortableContext
+              items={items.map((c) => `chapter-${c.id}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="list">
+                {items.map((item) => (
+                  <React.Fragment key={`chapter-${item.id}`}>
+                    <SortableChapter
+                      id={`chapter-${item.id}`}
+                      chapterId={item.id}
+                      title={item.title}
+                      isOpen={item.isOpen}
+                      toggleOpen={() => toggleChapter(item.id)}
+                      lessonCreate={
+                        item.isOpen && (
+                          <div className="p-2">
+                            <Button
+                              type="button"
+                              className="w-full"
+                              variant="outline"
+                            >
+                              Create New Lesson
+                            </Button>
+                          </div>
+                        )
+                      }
+                      lessons={
+                        item.isOpen && item.lessons.length > 0 ? (
+                          <SortableContext
+                            items={item.lessons.map((l) => `lesson-${l.id}`)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <ul className="mt-2 border-l border-border pl-3 space-y-4">
+                              {item.lessons.map((lesson) => (
+                                <SortableLesson
+                                  key={`lesson-${lesson.id}`}
+                                  id={`lesson-${lesson.id}`}
+                                  title={lesson.title}
+                                  chapterId={item.id}
+                                  courseId={data.id}
+                                  lessonId={lesson.id}
+                                />
+                              ))}
+                            </ul>
+                          </SortableContext>
+                        ) : null
+                      }
+                    />
+                  </React.Fragment>
+                ))}
+              </ul>
+            </SortableContext>
+          </div>
         </CardContent>
       </Card>
     </DndContext>
