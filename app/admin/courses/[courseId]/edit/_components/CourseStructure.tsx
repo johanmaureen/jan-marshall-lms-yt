@@ -5,7 +5,6 @@ import {
   type DragEndEvent,
   closestCenter,
   PointerSensor,
-  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -27,7 +26,8 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-//import { CSS } from '@dnd-kit/utilities'
+import { reorderLessons } from "../actions";
+import { toast } from "sonner";
 
 interface SortableChapterProps {
   id: string;
@@ -44,120 +44,6 @@ interface SortableLessonProps {
   title: string;
   courseId: string;
   lessonId: string;
-}
-
-function SortableChapter({
-  id,
-  title,
-  isOpen,
-  toggleOpen,
-  lessons,
-  lessonCreate,
-}: SortableChapterProps) {
-  const {
-    setNodeRef,
-    isDragging,
-    attributes,
-    listeners,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
-
-  return (
-    <>
-      <li ref={setNodeRef} {...attributes} style={style}>
-        <div
-          className="flex  items-center justify-between p-3 border-b border-border"
-          data-shadow={isDragging || undefined}
-        >
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-              {...listeners}
-            >
-              <GripVertical className="size-4" />
-            </button>
-            <Button onClick={toggleOpen} type="button" variant="outline">
-              {isOpen ? (
-                <ChevronDown className="size4" />
-              ) : (
-                <ChevronRight className="size4" />
-              )}
-            </Button>
-          </div>
-          <div className="flex-1 min-w-0 px-4 text-center">
-            <p className="truncate cursor-pointer hover:text-primary">
-              {title}
-            </p>
-          </div>
-          <Button size="icon" variant="outline">
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-      </li>
-      {lessons}
-      {lessonCreate}
-    </>
-  );
-}
-
-function SortableLesson({
-  id,
-  title,
-  chapterId,
-  courseId,
-  lessonId,
-}: SortableLessonProps) {
-  const {
-    setNodeRef,
-    isDragging,
-    attributes,
-    listeners,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
-
-  return (
-    <li ref={setNodeRef} {...attributes} style={style}>
-      <div
-        className="flex flex-row items-center justify-between p-3 border-b border-border"
-        data-shadow={isDragging || undefined}
-      >
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            {...listeners}
-          >
-            <GripVertical className="size-4" />
-          </button>
-          <FileText className="size-4" />
-        </div>
-        <div className="flex-1 min-w-0 px-4 text-center">
-          <Link
-            className="block w-full truncate"
-            href={`/admin/courses/${courseId}/${chapterId}/${lessonId}`}
-          >
-            {title}
-          </Link>
-        </div>
-        <Button size="icon" variant="outline">
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    </li>
-  );
 }
 
 interface CourseStructureProps {
@@ -178,11 +64,85 @@ export function CourseStructure({ data }: CourseStructureProps) {
     })) || [];
   const [items, setItems] = useState(initialItems);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(MouseSensor),
-    useSensor(TouchSensor),
-  );
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
+
+  function logChapterOrderChanges(
+    originalChapters: typeof initialItems,
+    updatedChapters: typeof initialItems,
+    courseId: string,
+  ) {
+    const originalOrderById = new Map(
+      originalChapters.map((chapter) => [chapter.id, chapter.order]),
+    );
+
+    const changes = updatedChapters
+      .map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        before: originalOrderById.get(chapter.id) ?? -1,
+        after: chapter.order,
+      }))
+      .filter((chapter) => chapter.before !== chapter.after);
+
+    if (changes.length === 0) {
+      console.log("[CourseStructure] Chapters unchanged for course", courseId);
+      return;
+    }
+
+    console.log("[CourseStructure] Chapters updated", {
+      courseId,
+      changes,
+      original: originalChapters.map(({ id, title, order }) => ({
+        id,
+        title,
+        order,
+      })),
+      updated: updatedChapters.map(({ id, title, order }) => ({
+        id,
+        title,
+        order,
+      })),
+    });
+  }
+
+  function getLessonOrderChanges(
+    originalChapters: typeof initialItems,
+    updatedChapters: typeof initialItems,
+  ) {
+    return updatedChapters
+      .map((chapter) => {
+        const lessonChanges = chapter.lessons
+          .map((lesson) => {
+            const originalChapter = originalChapters.find(
+              (original) => original.id === chapter.id,
+            );
+            const originalLesson = originalChapter?.lessons.find(
+              (originalLesson) => originalLesson.id === lesson.id,
+            );
+            if (!originalLesson || originalLesson.order === lesson.order) {
+              return null;
+            }
+            return {
+              lessonId: lesson.id,
+              position: lesson.order,
+            };
+          })
+          .filter(
+            (
+              change,
+            ): change is {
+              lessonId: string;
+              position: number;
+            } => change !== null,
+          );
+
+        return {
+          chapterId: chapter.id,
+          lessonChanges,
+        };
+      })
+      .filter((chapter) => chapter.lessonChanges.length > 0);
+  }
 
   function toggleChapter(chapterId: string) {
     setItems(
@@ -194,10 +154,125 @@ export function CourseStructure({ data }: CourseStructureProps) {
     );
   }
 
+  function SortableChapter({
+    id,
+    title,
+    isOpen,
+    toggleOpen,
+    lessons,
+    lessonCreate,
+  }: SortableChapterProps) {
+    const {
+      setNodeRef,
+      isDragging,
+      attributes,
+      listeners,
+      transform,
+      transition,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Translate.toString(transform),
+      transition,
+    };
+
+    return (
+      <>
+        <li ref={setNodeRef} {...attributes} style={style}>
+          <div
+            className="flex  items-center justify-between p-3 border-b border-border"
+            data-shadow={isDragging || undefined}
+          >
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+                {...listeners}
+              >
+                <GripVertical className="size-4" />
+              </button>
+              <Button onClick={toggleOpen} type="button" variant="outline">
+                {isOpen ? (
+                  <ChevronDown className="size4" />
+                ) : (
+                  <ChevronRight className="size4" />
+                )}
+              </Button>
+            </div>
+            <div className="flex-1 min-w-0 px-4 text-center">
+              <p className="truncate cursor-pointer hover:text-primary">
+                {title}
+              </p>
+            </div>
+            <Button size="icon" variant="outline">
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </li>
+        {lessons}
+        {lessonCreate}
+      </>
+    );
+  }
+
+  function SortableLesson({
+    id,
+    title,
+    chapterId,
+    courseId,
+    lessonId,
+  }: SortableLessonProps) {
+    const {
+      setNodeRef,
+      isDragging,
+      attributes,
+      listeners,
+      transform,
+      transition,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Translate.toString(transform),
+      transition,
+    };
+
+    return (
+      <li ref={setNodeRef} {...attributes} style={style}>
+        <div
+          className="flex flex-row items-center justify-between p-3 border-b border-border"
+          data-shadow={isDragging || undefined}
+        >
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="cursor-grab opacity-60 hover:opacity-100 rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+              {...listeners}
+            >
+              <GripVertical className="size-4" />
+            </button>
+            <FileText className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0 px-4 text-center">
+            <Link
+              className="block w-full truncate"
+              href={`/admin/courses/${courseId}/${chapterId}/${lessonId}`}
+            >
+              {title}
+            </Link>
+          </div>
+          <Button size="icon" variant="outline">
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </li>
+    );
+  }
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      /*
       onDragStart={(event) => {
         console.log("[CourseStructure] onDragStart", {
           active: String(event.active.id),
@@ -208,73 +283,123 @@ export function CourseStructure({ data }: CourseStructureProps) {
           over: event.over?.id ? String(event.over.id) : null,
         });
       }}
+        */
+
       onDragEnd={(event: DragEndEvent) => {
         const activeIdStr = String(event.active.id);
         const overIdStr = event.over?.id ? String(event.over.id) : null;
 
-        setItems((items) => {
-          if (!overIdStr || activeIdStr === overIdStr) return items;
+        if (!overIdStr || activeIdStr === overIdStr) return;
 
-          const isActiveChapter = activeIdStr.startsWith("chapter-");
-          const isOverChapter = overIdStr.startsWith("chapter-");
+        const isActiveChapter = activeIdStr.startsWith("chapter-");
+        const isOverChapter = overIdStr.startsWith("chapter-");
 
-          const activeRaw = activeIdStr.replace(/^chapter-|^lesson-/, "");
-          const overRaw = overIdStr.replace(/^chapter-|^lesson-/, "");
+        const activeRaw = activeIdStr.replace(/^chapter-|^lesson-/, "");
+        const overRaw = overIdStr.replace(/^chapter-|^lesson-/, "");
 
-          // Move chapter
-          if (isActiveChapter) {
-            const next = [...items];
-            const from = next.findIndex((c) => c.id === activeRaw);
-            const to = isOverChapter
-              ? next.findIndex((c) => c.id === overRaw)
-              : next.findIndex((c) => c.lessons.some((l) => l.id === overRaw));
-            if (from === -1 || to === -1) return items;
-            const [moved] = next.splice(from, 1);
-            next.splice(to, 0, moved);
-            const updated = next.map((c, i) => ({ ...c, order: i }));
-            console.log("[CourseStructure] moved chapter", {
-              moved: moved.id,
-              updated,
-            });
-            return updated;
+        // Work with current items outside of the state updater to avoid side-effects during render
+        const currentItems = items;
+
+        // Move chapter
+        if (isActiveChapter) {
+          const next = [...currentItems];
+          const from = next.findIndex((c) => c.id === activeRaw);
+          const to = isOverChapter
+            ? next.findIndex((c) => c.id === overRaw)
+            : next.findIndex((c) => c.lessons.some((l) => l.id === overRaw));
+          if (from === -1 || to === -1) return;
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          const updated = next.map((c, i) => ({ ...c, order: i + 1 }));
+
+          const courseId = data.id;
+          if (courseId) {
+            logChapterOrderChanges(initialItems, updated, courseId);
           }
+          setItems(updated);
+          return;
+        }
 
-          // Move lesson within same chapter only
-          const findChapterByLessonId = (id: string) =>
-            items.find((chapter) => chapter.lessons.some((l) => l.id === id));
-
-          const activeChapter = findChapterByLessonId(activeRaw);
-          const overChapter = isOverChapter
-            ? items.find((c) => c.id === overRaw)
-            : findChapterByLessonId(overRaw);
-
-          if (
-            !activeChapter ||
-            !overChapter ||
-            activeChapter.id !== overChapter.id
-          ) {
-            return items;
-          }
-
-          const chapter = activeChapter;
-          const lessons = [...chapter.lessons];
-          const fromIndex = lessons.findIndex((l) => l.id === activeRaw);
-          const toIndex = lessons.findIndex((l) => l.id === overRaw);
-          if (fromIndex === -1 || toIndex === -1) return items;
-
-          const [movedLesson] = lessons.splice(fromIndex, 1);
-          lessons.splice(toIndex, 0, movedLesson);
-          const updated = items.map((c) =>
-            c.id === chapter.id
-              ? { ...c, lessons: lessons.map((l, i) => ({ ...l, order: i })) }
-              : c,
+        // Move lesson within same chapter only
+        const findChapterByLessonId = (id: string) =>
+          currentItems.find((chapter) =>
+            chapter.lessons.some((l) => l.id === id),
           );
-          console.log("[CourseStructure] moved lesson", {
-            movedLesson: movedLesson.id,
-            updatedLessons: updated.find((c) => c.id === chapter.id)?.lessons,
-          });
-          return updated;
-        });
+
+        const activeChapter = findChapterByLessonId(activeRaw);
+        const overChapter = isOverChapter
+          ? currentItems.find((c) => c.id === overRaw)
+          : findChapterByLessonId(overRaw);
+
+        if (
+          !activeChapter ||
+          !overChapter ||
+          activeChapter.id !== overChapter.id
+        ) {
+          return;
+        }
+
+        const chapter = activeChapter;
+        const lessons = [...chapter.lessons];
+        const fromIndex = lessons.findIndex((l) => l.id === activeRaw);
+        const toIndex = lessons.findIndex((l) => l.id === overRaw);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const [movedLesson] = lessons.splice(fromIndex, 1);
+        lessons.splice(toIndex, 0, movedLesson);
+        const updated = currentItems.map((c) =>
+          c.id === chapter.id
+            ? {
+                ...c,
+                lessons: lessons.map((l, i) => ({ ...l, order: i + 1 })),
+              }
+            : c,
+        );
+        const previousItems = currentItems;
+
+        const courseId = data.id;
+        setItems(updated);
+
+        if (courseId) {
+          const lessonOrderChanges = getLessonOrderChanges(
+            initialItems,
+            updated,
+          );
+          const chapterOrderChanges = lessonOrderChanges.find(
+            (change) => change.chapterId === chapter.id,
+          );
+          if (chapterOrderChanges) {
+            console.log("[CourseStructure] Lesson order changes", {
+              courseId,
+              lessonOrderChanges: chapterOrderChanges.lessonChanges,
+            });
+            const reorderLessonsPromise = () =>
+              reorderLessons(
+                chapter.id,
+                chapterOrderChanges.lessonChanges.map(
+                  ({ lessonId, position }) => ({
+                    id: lessonId,
+                    position,
+                  }),
+                ),
+                courseId,
+              );
+            toast.promise(reorderLessonsPromise(), {
+              loading: "Reordering Lessons...",
+              success: (result) => {
+                if (result.status === "success") {
+                  return result.message;
+                }
+                throw new Error(result.message);
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              error: (err: any) => {
+                setItems(previousItems);
+                return err?.message ?? "Failed to reorder lessons";
+              },
+            });
+          }
+        }
       }}
     >
       <Card>
