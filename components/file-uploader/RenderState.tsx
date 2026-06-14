@@ -55,6 +55,7 @@ export function RenderUploadedState({
     <div>
       <div>
         <Image
+          unoptimized
           src={previewUrl}
           alt="Uploaded file"
           width={500}

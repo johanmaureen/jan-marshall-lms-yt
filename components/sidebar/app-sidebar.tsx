@@ -138,6 +138,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/">
                 <Image
+                  unoptimized
                   src={Logo}
                   alt="Logo"
                   loading="eager"

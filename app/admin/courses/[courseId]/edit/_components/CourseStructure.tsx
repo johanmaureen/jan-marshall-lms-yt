@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -26,7 +26,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { reorderLessons } from "../actions";
+import { reorderChapters, reorderLessons } from "../actions";
 import { toast } from "sonner";
 
 interface SortableChapterProps {
@@ -66,45 +66,6 @@ export function CourseStructure({ data }: CourseStructureProps) {
 
   const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor));
 
-  function logChapterOrderChanges(
-    originalChapters: typeof initialItems,
-    updatedChapters: typeof initialItems,
-    courseId: string,
-  ) {
-    const originalOrderById = new Map(
-      originalChapters.map((chapter) => [chapter.id, chapter.order]),
-    );
-
-    const changes = updatedChapters
-      .map((chapter) => ({
-        id: chapter.id,
-        title: chapter.title,
-        before: originalOrderById.get(chapter.id) ?? -1,
-        after: chapter.order,
-      }))
-      .filter((chapter) => chapter.before !== chapter.after);
-
-    if (changes.length === 0) {
-      console.log("[CourseStructure] Chapters unchanged for course", courseId);
-      return;
-    }
-
-    console.log("[CourseStructure] Chapters updated", {
-      courseId,
-      changes,
-      original: originalChapters.map(({ id, title, order }) => ({
-        id,
-        title,
-        order,
-      })),
-      updated: updatedChapters.map(({ id, title, order }) => ({
-        id,
-        title,
-        order,
-      })),
-    });
-  }
-
   function getLessonOrderChanges(
     originalChapters: typeof initialItems,
     updatedChapters: typeof initialItems,
@@ -142,6 +103,36 @@ export function CourseStructure({ data }: CourseStructureProps) {
         };
       })
       .filter((chapter) => chapter.lessonChanges.length > 0);
+  }
+
+  function getChapterOrderChanges(
+    originalChapters: typeof initialItems,
+    updatedChapters: typeof initialItems,
+  ) {
+    return updatedChapters
+      .map((chapter) => {
+        const originalChapter = originalChapters.find(
+          (original) => original.id === chapter.id,
+        );
+        const originalPosition = originalChapter?.order ?? -1;
+
+        if (originalPosition === chapter.order) {
+          return null;
+        }
+
+        return {
+          chapterId: chapter.id,
+          position: chapter.order,
+        };
+      })
+      .filter(
+        (
+          change,
+        ): change is {
+          chapterId: string;
+          position: number;
+        } => change !== null,
+      );
   }
 
   function toggleChapter(chapterId: string) {
@@ -268,6 +259,26 @@ export function CourseStructure({ data }: CourseStructureProps) {
     );
   }
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setItems((prevItems) => {
+      const updatedItems =
+        data.chapters.map((chapter) => ({
+          id: chapter.id,
+          title: chapter.title,
+          order: chapter.position,
+          isOpen:
+            prevItems.find((item) => item.id === chapter.id)?.isOpen ?? true,
+          lessons: chapter.lessons.map((lesson) => ({
+            id: lesson.id,
+            title: lesson.title,
+            order: lesson.position,
+          })),
+        })) || [];
+      return updatedItems;
+    });
+  }, [data]);
+
   return (
     <DndContext
       sensors={sensors}
@@ -311,13 +322,44 @@ export function CourseStructure({ data }: CourseStructureProps) {
           const [moved] = next.splice(from, 1);
           next.splice(to, 0, moved);
           const updated = next.map((c, i) => ({ ...c, order: i + 1 }));
+          const previousItems = [...items];
 
           const courseId = data.id;
           if (courseId) {
-            logChapterOrderChanges(initialItems, updated, courseId);
+            const chapterOrderChanges = getChapterOrderChanges(
+              initialItems,
+              updated,
+            );
+            /*  console.log("[CourseStructure] Chapter order changes", {
+              courseId,
+              chapterOrderChanges,
+            }); */
+            //logChapterOrderChanges(initialItems, updated, courseId);
+            const reorderChaptersPromise = () =>
+              reorderChapters(
+                courseId,
+                chapterOrderChanges.map(({ chapterId, position }) => ({
+                  id: chapterId,
+                  position,
+                })),
+              );
+            toast.promise(reorderChaptersPromise(), {
+              loading: "Reordering Chapters...",
+              success: (result) => {
+                if (result.status === "success") {
+                  return result.message;
+                }
+                throw new Error(result.message);
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              error: (err: any) => {
+                setItems(previousItems);
+                return err?.message ?? "Failed to reorder chapters";
+              },
+            });
           }
-          setItems(updated);
-          return;
+
+          return updated;
         }
 
         // Move lesson within same chapter only
@@ -369,10 +411,11 @@ export function CourseStructure({ data }: CourseStructureProps) {
             (change) => change.chapterId === chapter.id,
           );
           if (chapterOrderChanges) {
-            console.log("[CourseStructure] Lesson order changes", {
+            /*   console.log("[CourseStructure] Lesson order changes", {
               courseId,
               lessonOrderChanges: chapterOrderChanges.lessonChanges,
-            });
+            }); */
+
             const reorderLessonsPromise = () =>
               reorderLessons(
                 chapter.id,

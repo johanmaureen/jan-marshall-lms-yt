@@ -61,6 +61,7 @@ export async function AdmindCourseCard({ data }: AdmindCourseCardProps) {
         </DropdownMenu>
       </div>
       <Image
+        unoptimized
         src={thumbnailUrl}
         alt="thumbnail"
         width={200}

@@ -30,6 +30,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               fill
               sizes="48px"
               loading="eager"
+              unoptimized
               style={{ objectFit: "contain" }}
             />
           </div>
