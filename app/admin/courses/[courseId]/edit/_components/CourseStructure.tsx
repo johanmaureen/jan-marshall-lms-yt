@@ -23,11 +23,14 @@ import {
   ChevronRight,
   FileText,
   GripVertical,
-  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { reorderChapters, reorderLessons } from "../actions";
 import { toast } from "sonner";
+import { NewChapterModal } from "./NewChapterModal";
+import { NewLessonModal } from "./NewLessonModal";
+import { DeleteLesson } from "./DeleteLesson";
+import { DeleteChapter } from "./DeleteChapter";
 
 interface SortableChapterProps {
   id: string;
@@ -37,6 +40,7 @@ interface SortableChapterProps {
   toggleOpen: () => void;
   lessons?: React.ReactNode;
   lessonCreate: React.ReactNode;
+  courseId: string;
 }
 interface SortableLessonProps {
   id: string;
@@ -152,6 +156,8 @@ export function CourseStructure({ data }: CourseStructureProps) {
     toggleOpen,
     lessons,
     lessonCreate,
+    chapterId,
+    courseId,
   }: SortableChapterProps) {
     const {
       setNodeRef,
@@ -195,9 +201,7 @@ export function CourseStructure({ data }: CourseStructureProps) {
                 {title}
               </p>
             </div>
-            <Button size="icon" variant="outline">
-              <Trash2 className="size-4" />
-            </Button>
+            <DeleteChapter chapterId={chapterId} courseId={courseId} />
           </div>
         </li>
         {lessons}
@@ -251,9 +255,11 @@ export function CourseStructure({ data }: CourseStructureProps) {
               {title}
             </Link>
           </div>
-          <Button size="icon" variant="outline">
-            <Trash2 className="size-4" />
-          </Button>
+          <DeleteLesson
+            chapterId={chapterId}
+            courseId={courseId}
+            lessonId={lessonId}
+          />
         </div>
       </li>
     );
@@ -448,6 +454,7 @@ export function CourseStructure({ data }: CourseStructureProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between border-b border-border">
           <CardTitle>Chapters</CardTitle>
+          <NewChapterModal courseId={data.id} />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -461,19 +468,17 @@ export function CourseStructure({ data }: CourseStructureProps) {
                     <SortableChapter
                       id={`chapter-${item.id}`}
                       chapterId={item.id}
+                      courseId={data.id}
                       title={item.title}
                       isOpen={item.isOpen}
                       toggleOpen={() => toggleChapter(item.id)}
                       lessonCreate={
                         item.isOpen && (
                           <div className="p-2">
-                            <Button
-                              type="button"
-                              className="w-full"
-                              variant="outline"
-                            >
-                              Create New Lesson
-                            </Button>
+                            <NewLessonModal
+                              chapterId={item.id}
+                              courseId={data.id}
+                            />
                           </div>
                         )
                       }
