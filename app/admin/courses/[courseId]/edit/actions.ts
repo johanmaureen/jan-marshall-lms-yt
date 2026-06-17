@@ -457,3 +457,56 @@ export async function deleteChapter({
     };
   }
 }
+
+export async function updateLesson(
+  values: LessonSchemaType,
+  lessonId: string,
+): Promise<ApiResponse> {
+  await requireAdmin();
+  try {
+    /*  const req = await request();
+    const decision = await aj.protect(req, { fingerprint: session.user.id });
+    if (decision.isDenied()) {
+      if (decision.reason.isRateLimit())
+        return {
+          status: "error",
+          message: "You have blocked due to Rate Limiting ",
+        };
+      if (decision.reason.isBot())
+        return {
+          status: "error",
+          message: "You are a bot",
+        };
+    } */
+
+    const validation = lessonSchema.safeParse(values);
+    if (!validation.success) {
+      return {
+        status: "error",
+        message: "Invalid Form Data",
+      };
+    }
+
+    await prisma.lesson.update({
+      where: {
+        id: lessonId,
+      },
+      data: {
+        title: validation.data.name,
+        chapterId: validation.data.chapterId,
+        description: validation.data.description,
+        videoKey: validation.data.videoKey,
+        thumbnailKey: validation.data.thumbnailKey,
+      },
+    });
+    return {
+      status: "success",
+      message: "Lesson updated successfully",
+    };
+  } catch {
+    return {
+      status: "error",
+      message: "Failed to update lesson",
+    };
+  }
+}

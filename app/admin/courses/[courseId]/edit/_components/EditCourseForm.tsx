@@ -40,9 +40,14 @@ import { AdminCourseType } from "@/app/data/admin/admin-get-course";
 interface iAppProps {
   data: AdminCourseType;
   presignedUrl: string;
+  presignedVideoUrl: string;
 }
 
-export function EditCourseForm({ data, presignedUrl }: iAppProps) {
+export function EditCourseForm({
+  data,
+  presignedUrl,
+  presignedVideoUrl,
+}: iAppProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const form = useForm<CourseSchemaType>({
@@ -165,6 +170,8 @@ export function EditCourseForm({ data, presignedUrl }: iAppProps) {
                   onChange={field.onChange}
                   value={field.value}
                   presignedUrl={presignedUrl}
+                  fileTypeAccepted="image"
+                  presignedVideoUrl={presignedVideoUrl}
                 />
               </FormControl>
               <FormMessage />

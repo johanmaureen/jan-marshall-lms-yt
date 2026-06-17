@@ -190,6 +190,8 @@ export default function CourseCreationPage() {
                           onChange={field.onChange}
                           value={field.value}
                           presignedUrl=""
+                          fileTypeAccepted="image"
+                          presignedVideoUrl=""
                         />
                       </FormControl>
                       <FormMessage />
