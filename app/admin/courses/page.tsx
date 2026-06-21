@@ -40,7 +40,7 @@ async function RenderCourses() {
           href="/admin/courses/create"
         />
       ) : (
-        <div className="grid  grid-cols-1 sm:grid-col-1 md:grid-col-2 gap-7 ">
+        <div className="grid  grid-cols-1 sm:grid-col-1 md:grid-col-2 lg:grid-cols-3 gap-7 ">
           {data.map((course) => (
             <AdmindCourseCard key={course.id} data={course} />
           ))}

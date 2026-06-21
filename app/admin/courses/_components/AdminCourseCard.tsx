@@ -61,15 +61,17 @@ export async function AdmindCourseCard({ data }: AdmindCourseCardProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Image
-        unoptimized
-        src={thumbnailUrl}
-        alt="thumbnail"
-        width={200}
-        height={200}
-        loading="eager"
-        className="w-35 h-35 rounded-t-lg aspect-video object-cover"
-      />
+      {thumbnailUrl && (
+        <Image
+          unoptimized
+          src={thumbnailUrl}
+          alt="thumbnail"
+          width={600}
+          height={400}
+          loading="eager"
+          className="w-full h-full rounded-t-lg aspect-video object-cover"
+        />
+      )}
       <CardContent className="p-4">
         <Link
           href={`/admin/courses/${data.id}/edit`}
