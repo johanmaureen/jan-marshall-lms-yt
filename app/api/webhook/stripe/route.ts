@@ -44,6 +44,6 @@ export async function POST(req: Request) {
         status: "Active",
       },
     });
-    return new Response(null, { status: 200 });
   }
+  return new Response(null, { status: 200 });
 }
