@@ -18,10 +18,10 @@ import {
   IconPlayerPlay,
 } from "@tabler/icons-react";
 import Image from "next/image";
-import { Lesson } from "../../../../lib/generated/prisma/client";
 import { CheckIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { enrollInCourseAction } from "./action";
+import { checkIfCourseBought } from "@/app/data/user/use-is-enrolled";
+import Link from "next/link";
+import { EnrollmentButton } from "./_componemts/EnrollmentButton";
 
 type Params = Promise<{ slug: string }>;
 
@@ -29,6 +29,7 @@ export default async function SlugPage({ params }: { params: Params }) {
   const { slug } = await params;
   const course = await getIndividualCourse(slug);
   const presignedUrl = await getConstructUrl(course.fileKey ?? "");
+  const isEnrolled = await checkIfCourseBought(course.id);
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 mt-5">
@@ -245,14 +246,11 @@ export default async function SlugPage({ params }: { params: Params }) {
                   </li>
                 </ul>
               </div>
-              <form
-                action={async () => {
-                  "use server";
-                  enrollInCourseAction(course.id);
-                }}
-              >
-                <Button className="w-full">Enroll Now!</Button>
-              </form>
+              {isEnrolled ? (
+                <Link href="dashboard">Watch Course</Link>
+              ) : (
+                <EnrollmentButton courseId={course.id} />
+              )}
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 30-day money-back qaruntee
               </p>
